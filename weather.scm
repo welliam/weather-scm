@@ -3,11 +3,12 @@
                        get-temporary-path
                        lines
                        words
-                       current-path)
+                       path)
   (import chicken scheme)
   (use extras)
   (use posix)
   (use srfi-1)
+  (import weather-config)
 
   (define (sep s . xs)
     (foldr (lambda (x result) (string-append x s result))
@@ -33,9 +34,6 @@
     (member (string-append "--" flag)
             (command-line-arguments)))
 
-  (define (current-path)
-    (cdr (assoc "WEATHER_PATH" (get-environment-variables))))
-
   (define (get-argument flag)
     (define search (has-argument? flag))
     (and search (cadr search))))
@@ -46,10 +44,11 @@
   (use srfi-1)
   (use sqlite3)
   (use posix)
+  (import weather-config)
   (import weather-utils)
 
   (define (get-database)
-    (open-database (format "~a/weather.db" (current-path))))
+    (open-database (format "~a/weather.db" config-path)))
 
   (define (create-table)
     (define db (get-database))
@@ -103,6 +102,7 @@
   (import chicken scheme)
   (import weather-dump-data)
   (import weather-utils)
+  (import weather-config)
   (use shell)
   (use extras)
 
@@ -114,7 +114,7 @@
                    (format " -e \"charttitle='~a'\" " title)
                    (format " -e \"outputfile='~a'\" " output)
                    (format " -e \"inputfile='~a'\" " input)
-                   (format " ~a/chart.plt" (current-path)))))))
+                   (format " ~a/chart.plt" config-path))))))
 
   (define (write-chart)
     (define title "Weather")
@@ -132,6 +132,7 @@
   (use base64)
   (use shell)
   (import weather-utils)
+  (import weather-config)
 
   (define-record-type email-context
     (email-context <url> <from> <to> <credentials> <subject>)
@@ -145,11 +146,11 @@
   (define (get-environment-email-context)
     (define current-env (get-environment-variables))
     (email-context
-     (cdr (assoc "WEATHER_URL" current-env))
-     (cdr (assoc "WEATHER_FROM" current-env))
-     (cdr (assoc "WEATHER_TO" current-env))
-     (cdr (assoc "WEATHER_CREDENTIALS" current-env))
-     (cdr (assoc "WEATHER_SUBJECT" current-env))))
+     config-url
+     config-from
+     config-to
+     config-credentials
+     config-subject))
 
   (define (format-email path-to-chart-png context)
     (define cid "chart")
