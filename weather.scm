@@ -1,4 +1,9 @@
-(module weather-utils (has-argument? get-argument get-temporary-path lines words)
+(module weather-utils (has-argument?
+                       get-argument
+                       get-temporary-path
+                       lines
+                       words
+                       current-path)
   (import chicken scheme)
   (use extras)
   (use srfi-1)
@@ -27,6 +32,8 @@
     (member (string-append "--" flag)
             (command-line-arguments)))
 
+  (define current-path (cdr (assoc "WEATHER_PATH" (get-environment-variables))))
+
   (define (get-argument flag)
     (define search (has-argument? flag))
     (and search (cadr search))))
@@ -42,7 +49,7 @@
   (define (get-database)
     (open-database
      (cdr
-      (assoc "WEATHER_DATABASE_PATH" (get-environment-variables)))))
+      (format " ~a/weather.db" current-path))))
 
   (define (create-table)
     (define db (get-database))
@@ -107,7 +114,7 @@
                    (format " -e \"charttitle='~a'\" " title)
                    (format " -e \"outputfile='~a'\" " output)
                    (format " -e \"inputfile='~a'\" " input)
-                   " chart.plt")))))
+                   (format " ~a/chart.plt" current-path))))))
 
   (define (write-chart)
     (define title "Weather")
