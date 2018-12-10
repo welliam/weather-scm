@@ -201,7 +201,10 @@
     (cond
      ((has-argument? "email") (send-last-24-hours))
      ((has-argument? "initialize") (create-table))
-     (else (insert-current-weather)))))
+     ((and (has-argument? "temperature")
+           (has-argument? "humidity"))
+      (insert-current-weather))
+     (else (print "Unknown arguments")))))
 
 (import main)
 (main)
