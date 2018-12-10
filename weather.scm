@@ -57,7 +57,7 @@
      "insert into weather (temperature, humidity, created, location) values (?, ?, ?, ?)"
      (get-argument "temperature")
      (get-argument "humidity")
-     (inexact->exact (current-seconds))
+     (current-seconds)
      "inside"))
 
   (define (get-last-24-hours)
