@@ -6,6 +6,7 @@
                        current-path)
   (import chicken scheme)
   (use extras)
+  (use posix)
   (use srfi-1)
 
   (define (sep s . xs)
