@@ -39,7 +39,10 @@
   (use posix)
   (import weather-utils)
 
-  (define (get-database) (open-database "weather.db"))
+  (define (get-database)
+    (open-database
+     (cdr
+      (assoc "WEATHER_DATABASE_PATH" (get-environment-variables)))))
 
   (define (create-table)
     (define db (get-database))
