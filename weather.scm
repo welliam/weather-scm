@@ -33,7 +33,8 @@
     (member (string-append "--" flag)
             (command-line-arguments)))
 
-  (define current-path (cdr (assoc "WEATHER_PATH" (get-environment-variables))))
+  (define (current-path)
+    (cdr (assoc "WEATHER_PATH" (get-environment-variables))))
 
   (define (get-argument flag)
     (define search (has-argument? flag))
@@ -48,7 +49,7 @@
   (import weather-utils)
 
   (define (get-database)
-    (open-database (format "~a/weather.db" current-path)))
+    (open-database (format "~a/weather.db" (current-path))))
 
   (define (create-table)
     (define db (get-database))
@@ -113,7 +114,7 @@
                    (format " -e \"charttitle='~a'\" " title)
                    (format " -e \"outputfile='~a'\" " output)
                    (format " -e \"inputfile='~a'\" " input)
-                   (format " ~a/chart.plt" current-path))))))
+                   (format " ~a/chart.plt" (current-path)))))))
 
   (define (write-chart)
     (define title "Weather")
