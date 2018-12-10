@@ -48,9 +48,7 @@
   (import weather-utils)
 
   (define (get-database)
-    (open-database
-     (cdr
-      (format " ~a/weather.db" current-path))))
+    (open-database (format " ~a/weather.db" current-path)))
 
   (define (create-table)
     (define db (get-database))
