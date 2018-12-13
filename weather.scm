@@ -131,6 +131,7 @@
   (use posix)
   (use base64)
   (use shell)
+  (use extras)
   (import weather-utils)
   (use weather-config)
 
