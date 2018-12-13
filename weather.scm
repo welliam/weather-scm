@@ -7,7 +7,7 @@
   (use extras)
   (use posix)
   (use srfi-1)
-  (use weather-config)
+  (import weather-config)
 
   (define (sep s . xs)
     (foldr (lambda (x result) (string-append x s result))
@@ -44,7 +44,7 @@
   (use sqlite3)
   (use posix)
   (use extras)
-  (use weather-config)
+  (import weather-config)
   (import weather-utils)
 
   (define (get-database)
@@ -102,7 +102,7 @@
   (import chicken scheme)
   (import weather-dump-data)
   (import weather-utils)
-  (use weather-config)
+  (import weather-config)
   (use shell)
   (use extras)
 
@@ -133,7 +133,7 @@
   (use shell)
   (use extras)
   (import weather-utils)
-  (use weather-config)
+  (import weather-config)
 
   (define-record-type email-context
     (email-context <url> <from> <to> <credentials> <subject>)
