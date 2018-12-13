@@ -44,6 +44,7 @@
   (use srfi-1)
   (use sqlite3)
   (use posix)
+  (use extras)
   (import weather-config)
   (import weather-utils)
 
