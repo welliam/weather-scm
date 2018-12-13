@@ -1,3 +1,5 @@
+(declare (uses weather-config))
+
 (module weather-utils (has-argument?
                        get-argument
                        get-temporary-path
@@ -44,6 +46,7 @@
   (use posix)
   (use extras)
   (import weather-utils)
+  (import weather-config)
 
   (define (get-database)
     (open-database (format "~a/weather.db" config-path)))
@@ -102,6 +105,7 @@
   (import weather-utils)
   (use shell)
   (use extras)
+  (import weather-config)
 
   (define (write-chart-with title output input)
     (execute
@@ -130,6 +134,7 @@
   (use shell)
   (use extras)
   (import weather-utils)
+  (import weather-config)
 
   (define-record-type email-context
     (email-context <url> <from> <to> <credentials> <subject>)
@@ -199,6 +204,7 @@
   (import weather-database)
   (import weather-chart)
   (import weather-email)
+  (import weather-config)
 
   (define (send-last-24-hours)
     (define path (write-chart))

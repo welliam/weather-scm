@@ -2,3 +2,4 @@
 /weather
 /secret.scm
 /weather-config.scm
+*.o
