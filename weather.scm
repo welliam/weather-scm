@@ -2,8 +2,7 @@
                        get-argument
                        get-temporary-path
                        lines
-                       words
-                       path)
+                       words)
   (import chicken scheme)
   (use extras)
   (use posix)
