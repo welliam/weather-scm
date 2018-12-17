@@ -38,7 +38,9 @@
     (define search (has-argument? flag))
     (and search (cadr search))))
 
-(module weather-database (create-table insert-current-weather get-last-24-hours)
+(module weather-database (create-table
+                          insert-current-weather
+                          get-last-24-hours)
   (import chicken scheme)
   (use data-structures)
   (use srfi-1)
@@ -47,6 +49,18 @@
   (use extras)
   (import weather-utils)
   (import weather-config)
+
+  (define-record-type weather-row
+    (make-weather-row
+     <weather-row-temperature>
+     <weather-row-humidity>
+     <weather-row-created>
+     <weather-row-location>)
+    weather-row?
+    (<weather-row-temperature> weather-row-temperature)
+    (<weather-row-humidity> weather-row-humidity)
+    (<weather-row-created> weather-row-created)
+    (<weather-row-location> weather-row-location))
 
   (define (get-database)
     (open-database (format "~a/weather.db" config-path)))

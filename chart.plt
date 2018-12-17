@@ -1,5 +1,5 @@
 set title charttitle
-set term png
+set term png size 1000,800
 set output outputfile
 
 set yrange [0:100]
