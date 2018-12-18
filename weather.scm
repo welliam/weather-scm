@@ -40,7 +40,8 @@
 
 (module weather-database (create-table
                           insert-current-weather
-                          get-last-24-hours)
+                          get-last-24-hours
+                          dump-data)
   (import chicken scheme)
   (use data-structures)
   (use srfi-1)
@@ -91,13 +92,7 @@
      (get-database)
      "select temperature, humidity, created, location from weather where created >= ? and created < ? order by created"
      (- (current-seconds) (* 60 60 24))
-     (current-seconds))))
-
-(module weather-dump-data (dump-data)
-  (import chicken scheme)
-  (use data-structures)
-  (import weather-utils)
-  (import weather-database)
+     (current-seconds)))
 
   (define (dump-data)
     (define data (get-last-24-hours))
@@ -107,15 +102,17 @@
         (for-each (lambda (row)
                     (define temperature (->string (car row)))
                     (define humidity (->string (cadr row)))
-                    (define created (->string (caddr row)))
+                    (define created (->string (+ (caddr row) config-timezone)))
                     (display
-                     (string-append created " " temperature " " humidity "\n")))
+                     (string-append created " "
+                                    temperature " "
+                                    humidity "\n")))
                   data)))
     path))
 
 (module weather-chart (write-chart)
   (import chicken scheme)
-  (import weather-dump-data)
+  (import weather-database)
   (import weather-utils)
   (use shell)
   (use extras)
