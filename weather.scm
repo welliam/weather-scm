@@ -4,11 +4,26 @@
                        get-argument
                        get-temporary-path
                        lines
-                       words)
+                       words
+                       current-date-formatted
+                       make-weather
+                       weather?
+                       one-day
+                       weather-temperature
+                       weather-humidity
+                       weather-created
+                       weather-location)
   (import chicken scheme)
   (use extras)
   (use posix)
   (use srfi-1)
+
+  (define (current-date-formatted)
+    (define time (seconds->local-time))
+    (define day (vector-ref time 3))
+    (define month (vector-ref time 4))
+    (define year (vector-ref time 5))
+    (format "~a/~a/~a" month day year))
 
   (define (sep s . xs)
     (foldr (lambda (x result) (string-append x s result))
@@ -36,11 +51,25 @@
 
   (define (get-argument flag)
     (define search (has-argument? flag))
-    (and search (cadr search))))
+    (and search (cadr search)))
+
+  (define-record-type weather
+    (make-weather
+     <weather-temperature>
+     <weather-humidity>
+     <weather-created>
+     <weather-location>)
+    weather?
+    (<weather-temperature> weather-temperature)
+    (<weather-humidity> weather-humidity)
+    (<weather-created> weather-created)
+    (<weather-location> weather-location))
+
+  (define one-day (* 60 60 24)))
 
 (module weather-database (create-table
                           insert-current-weather
-                          get-last-24-hours
+                          weather-get-last-days
                           dump-data)
   (import chicken scheme)
   (use data-structures)
@@ -50,18 +79,6 @@
   (use extras)
   (import weather-utils)
   (import weather-config)
-
-  (define-record-type weather-row
-    (make-weather-row
-     <weather-row-temperature>
-     <weather-row-humidity>
-     <weather-row-created>
-     <weather-row-location>)
-    weather-row?
-    (<weather-row-temperature> weather-row-temperature)
-    (<weather-row-humidity> weather-row-humidity)
-    (<weather-row-created> weather-row-created)
-    (<weather-row-location> weather-row-location))
 
   (define (get-database)
     (open-database (format "~a/weather.db" config-path)))
@@ -76,47 +93,80 @@
         humidity integer not null,
         location text not null);"))
 
-  (define (insert-current-weather)
-    (execute
-     (get-database)
-     "insert into weather (temperature, humidity, created, location) values (?, ?, ?, ?)"
+  (define (current-weather)
+    (make-weather
      (get-argument "temperature")
      (get-argument "humidity")
      (current-seconds)
      "inside"))
 
-  (define (get-last-24-hours)
-    ;; temperature, humidity, created, location
-    (map-row
-     list
+  (define (insert-current-weather)
+    (define weather (current-weather))
+    (execute
      (get-database)
-     "select temperature, humidity, created, location from weather where created >= ? and created < ? order by created"
-     (- (current-seconds) (* 60 60 24))
-     (current-seconds)))
+     "insert into weather (temperature, humidity, created, location)
+      values (?, ?, ?, ?)"
+     (weather-temperature weather)
+     (weather-humidity weather)
+     (weather-created weather)
+     (weather-location weather)))
 
-  (define (dump-data)
-    (define data (get-last-24-hours))
+  (define (weather-get-last-days n)
+    ;; temperature, humidity, created, location
+    (map-row make-weather
+             (get-database)
+             "select temperature, humidity, created, location
+              from weather
+              where created >= ? and created < ? order by created"
+             (- (current-seconds) (* n one-day))
+             (current-seconds)))
+
+  (define (dump-data data)
     (define path (get-temporary-path "dat"))
     (with-output-to-file path
       (lambda ()
-        (for-each (lambda (row)
-                    (define temperature (->string (car row)))
-                    (define humidity (->string (cadr row)))
-                    (define created (->string (+ (caddr row) config-timezone)))
-                    (display
-                     (string-append created " "
-                                    temperature " "
-                                    humidity "\n")))
+        (for-each (lambda (weather)
+                    (printf "~a ~a ~a\n"
+                            (+ (weather-created weather) config-timezone)
+                            (weather-temperature weather)
+                            (weather-humidity weather)))
                   data)))
     path))
+
+(module weather-process (get-data-after
+                         get-growth)
+  (import chicken scheme)
+  (use srfi-1)
+  (import weather-utils)
+
+  (define (get-data-after data time)
+    (filter (lambda (w) (> (weather-created w) time))
+            data))
+
+  (define (latest-before data time)
+    (define before
+      (filter (lambda (w) (< (weather-created w) time))
+              data))
+    (and (not (null? before)) (last before)))
+
+  (define (get-growth get-value data before after)
+    (define (get x) (and x (get-value x)))
+    (define before-value (get (latest-before data before)))
+    (define after-value (get (latest-before data after)))
+    (and before-value
+         after-value
+         (* (/ (- after-value before-value)
+               before-value)
+            100))))
 
 (module weather-chart (write-chart)
   (import chicken scheme)
   (import weather-database)
+  (import weather-process)
   (import weather-utils)
+  (import weather-config)
   (use shell)
   (use extras)
-  (import weather-config)
 
   (define (write-chart-with title output input)
     (execute
@@ -128,15 +178,16 @@
                    (format " -e \"inputfile='~a'\" " input)
                    (format " ~a/chart.plt" config-path))))))
 
-  (define (write-chart)
+  (define (write-chart data)
     (define title "Weather")
-    (define output (get-temporary-path "png"))
-    (define input (dump-data))
-    (write-chart-with title output input)
-    output))
+    (define output-path (get-temporary-path "png"))
+    (define last-24-hours
+      (get-data-after data (- (current-seconds) one-day)))
+    (define input (dump-data last-24-hours))
+    (write-chart-with title output-path input)
+    output-path))
 
 (module weather-email (send-email
-                       format-email
                        get-environment-email-context)
   (import chicken scheme)
   (use srfi-1)
@@ -144,6 +195,7 @@
   (use base64)
   (use shell)
   (use extras)
+  (import weather-process)
   (import weather-utils)
   (import weather-config)
 
@@ -165,11 +217,34 @@
      config-credentials
      config-subject))
 
-  (define (format-email path-to-chart-png context)
+  (define (foldl1 f t) (foldl f (car t) (cdr t)))
+
+  (define (format-html cid data)
+    (format "<html>
+               <body>
+                 <h1>As of ~a</h1>
+                 <div>High: ~aF, Low: ~aF</div>
+                 <div>Temperature growth: ~a%</div>
+                 <div>Humidity growth: ~a%</div>
+                 <img src=\"cid:~a\" />
+               </body>
+             </html>"
+            (current-date-formatted)
+            (foldl1 max (map weather-temperature data))
+            (foldl1 min (map weather-temperature data))
+            (get-growth weather-temperature
+                           data
+                           (- (current-seconds) one-day)
+                           (current-seconds))
+            (get-growth weather-humidity
+                           data
+                           (- (current-seconds) one-day)
+                           (current-seconds))
+            cid))
+
+  (define (format-email data path-to-chart-png context)
     (define cid "chart")
-    (define html-body
-      (format "<html><body><img src=\"cid:~a\" /></body></html>"
-              cid))
+    (define html-body (format-html cid data))
     (lines
      (format "From: Charts ~a" (email-context-from context))
      (format "To: ~a" (email-context-to context))
@@ -196,10 +271,10 @@
      (format "Content-Id: <~a>" cid)
      (call-with-input-file path-to-chart-png base64-encode)))
 
-    (define (send-email path-to-chart-png context)
+    (define (send-email data path-to-chart-png context)
       (define message-path (get-temporary-path "txt"))
       (with-output-to-file message-path
-        (lambda () (print (format-email path-to-chart-png context))))
+        (lambda () (print (format-email data path-to-chart-png context))))
       (execute
        (list
         (words "curl"
@@ -217,14 +292,15 @@
   (import weather-email)
   (import weather-config)
 
-  (define (send-last-24-hours)
-    (define path (write-chart))
+  (define (send-current-email)
+    (define data (weather-get-last-days 2))
+    (define path (write-chart data))
     (define context (get-environment-email-context))
-    (send-email path context))
+    (send-email data path context))
 
   (define (main)
     (cond
-     ((has-argument? "email") (send-last-24-hours))
+     ((has-argument? "email") (send-current-email))
      ((has-argument? "initialize") (create-table))
      ((and (has-argument? "temperature")
            (has-argument? "humidity"))
