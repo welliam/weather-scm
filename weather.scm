@@ -22,7 +22,7 @@
     (define time (seconds->local-time))
     (define day (vector-ref time 3))
     (define month (vector-ref time 4))
-    (define year (vector-ref time 5))
+    (define year (+ (vector-ref time 5) 1900))
     (format "~a/~a/~a" month day year))
 
   (define (sep s . xs)
@@ -223,23 +223,25 @@
     (format "<html>
                <body>
                  <h1>As of ~a</h1>
-                 <div>High: ~aF, Low: ~aF</div>
-                 <div>Temperature growth: ~a%</div>
-                 <div>Humidity growth: ~a%</div>
+                 <p>most recent: temp ~aF, humidity ~a%</p>
+                 <p>high: ~aF, low: ~aF</p>
+                 <p>growth: temp ~a% humidity ~a%</p>
                  <img src=\"cid:~a\" />
                </body>
              </html>"
             (current-date-formatted)
+            (weather-temperature (last data))
+            (weather-humidity (last data))
             (foldl1 max (map weather-temperature data))
             (foldl1 min (map weather-temperature data))
             (get-growth weather-temperature
-                           data
-                           (- (current-seconds) one-day)
-                           (current-seconds))
+                        data
+                        (- (current-seconds) one-day)
+                        (current-seconds))
             (get-growth weather-humidity
-                           data
-                           (- (current-seconds) one-day)
-                           (current-seconds))
+                        data
+                        (- (current-seconds) one-day)
+                        (current-seconds))
             cid))
 
   (define (format-email data path-to-chart-png context)
