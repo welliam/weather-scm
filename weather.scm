@@ -8,6 +8,7 @@
                        current-date-formatted
                        make-weather
                        weather?
+                       weather-valid?
                        one-day
                        weather-temperature
                        weather-humidity
@@ -24,6 +25,9 @@
     (define month (vector-ref time 4))
     (define year (+ (vector-ref time 5) 1900))
     (format "~a/~a/~a" month day year))
+
+  (define (weather-valid? weather)
+    (< 0 (string->number (weather-humidity weather)) 100))
 
   (define (sep s . xs)
     (foldr (lambda (x result) (string-append x s result))
@@ -102,14 +106,15 @@
 
   (define (insert-current-weather)
     (define weather (current-weather))
-    (execute
-     (get-database)
-     "insert into weather (temperature, humidity, created, location)
-      values (?, ?, ?, ?)"
-     (weather-temperature weather)
-     (weather-humidity weather)
-     (weather-created weather)
-     (weather-location weather)))
+    (when (weather-valid? weather)
+      (execute
+       (get-database)
+       "insert into weather (temperature, humidity, created, location)
+         values (?, ?, ?, ?)"
+       (weather-temperature weather)
+       (weather-humidity weather)
+       (weather-created weather)
+       (weather-location weather))))
 
   (define (weather-get-last-days n)
     ;; temperature, humidity, created, location
