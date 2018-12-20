@@ -226,14 +226,14 @@
 
   (define (format-growth growth)
     (round growth)
-    (format (cond ((> growth 0) "up ~a%" )
-                  ((< growth 0) "down ~a%")
+    (format (cond ((> growth 0) "&#x25B2;~a%" )
+                  ((< growth 0) "&#x25BC;~a%")
                   (else "same"))
             (inexact->exact (round (abs growth)))))
 
   (define (format-html cid data)
     (define latest
-      (format "temp ~aF (~a), humidity ~a% (~a)"
+      (format "&#x2600; ~aF (~a), &#x2601; ~a% (~a)"
               (weather-temperature (last data))
               (format-growth
                (get-growth weather-temperature
@@ -246,18 +246,23 @@
                            data
                            (- (current-seconds) one-day)
                            (current-seconds)))))
+
+    (define range
+      (format "~a to ~aF"
+              (foldl1 min (map weather-temperature data))
+              (foldl1 max (map weather-temperature data))))
+
     (format "<html>
                <body>
                  <center><h1>As of ~a</h1></center>
-                 <p>~a</p>
-                 <p>high: ~aF, low: ~aF</p>
+                 <center><strong>~a</strong></center>
+                 <center><strong>~a</strong></center>
                  <img src=\"cid:~a\" />
                </body>
              </html>"
             (current-date-formatted)
             latest
-            (foldl1 max (map weather-temperature data))
-            (foldl1 min (map weather-temperature data))
+            range
             cid))
 
   (define (format-email data path-to-chart-png context)
