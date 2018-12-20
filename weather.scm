@@ -224,29 +224,40 @@
 
   (define (foldl1 f t) (foldl f (car t) (cdr t)))
 
+  (define (format-growth growth)
+    (round growth)
+    (format (cond ((> growth 0) "up ~a%" )
+                  ((< growth 0) "down ~a%")
+                  (else "same"))
+            (inexact->exact (round (abs growth)))))
+
   (define (format-html cid data)
+    (define latest
+      (format "temp ~aF (~a), humidity ~a% (~a)"
+              (weather-temperature (last data))
+              (format-growth
+               (get-growth weather-temperature
+                           data
+                           (- (current-seconds) one-day)
+                           (current-seconds)))
+              (weather-humidity (last data))
+              (format-growth
+               (get-growth weather-humidity
+                           data
+                           (- (current-seconds) one-day)
+                           (current-seconds)))))
     (format "<html>
                <body>
-                 <h1>As of ~a</h1>
-                 <p>most recent: temp ~aF, humidity ~a%</p>
+                 <center><h1>As of ~a</h1></center>
+                 <p>~a</p>
                  <p>high: ~aF, low: ~aF</p>
-                 <p>growth: temp ~a% humidity ~a%</p>
                  <img src=\"cid:~a\" />
                </body>
              </html>"
             (current-date-formatted)
-            (weather-temperature (last data))
-            (weather-humidity (last data))
+            latest
             (foldl1 max (map weather-temperature data))
             (foldl1 min (map weather-temperature data))
-            (get-growth weather-temperature
-                        data
-                        (- (current-seconds) one-day)
-                        (current-seconds))
-            (get-growth weather-humidity
-                        data
-                        (- (current-seconds) one-day)
-                        (current-seconds))
             cid))
 
   (define (format-email data path-to-chart-png context)
