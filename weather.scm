@@ -54,8 +54,7 @@
             (command-line-arguments)))
 
   (define (get-argument flag)
-    (define search (has-argument? flag))
-    (and search (cadr search)))
+    (cadr (has-argument? flag)))
 
   (define-record-type weather
     (make-weather
@@ -102,7 +101,7 @@
      (get-argument "temperature")
      (get-argument "humidity")
      (current-seconds)
-     "inside"))
+     (get-argument "location")))
 
   (define (insert-current-weather)
     (define weather (current-weather))

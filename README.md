@@ -29,6 +29,6 @@ set up db:
 
 set up cron tab:
 ```
-*/5 * * * * THIS_DIRECTORY/weather $(PATH_TO_GET_VALUES)
+*/5 * * * * THIS_DIRECTORY/weather $(PATH_TO_GET_VALUES) --location LOCATION
 30  5 * * * THIS_DIRECTORY/weather --email
 ```
